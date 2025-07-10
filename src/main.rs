@@ -5,14 +5,12 @@ mod tts;
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
-    if args.len() > 1 {
-        let n_gram = if args.len() > 2 {
-            args[2].parse().unwrap()
-        } else {
-            5
-        };
+    if args.len() > 2 {
+        let n_gram = args[1].parse().unwrap();
 
-        let markov = Markov::new(args[1].as_str(), n_gram);
+        let files = args[2..args.len()].to_vec();
+
+        let markov = Markov::new(files, n_gram);
 
         let text = markov.generate_text(2000);
 

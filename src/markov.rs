@@ -12,46 +12,48 @@ pub struct Markov {
 }
 
 impl Markov {
-    pub fn new(file: &str, n_gram: usize) -> Self {
+    pub fn new(files: Vec<String>, n_gram: usize) -> Self {
         let mut markov = Self {
             n_gram,
             chain: HashMap::new(),
         };
 
-        // Open a file to use as the data
-        let f = File::open(file).unwrap();
-        let reader = BufReader::new(f);
+        for file in files {
+            // Open a file to use as the data
+            let f = File::open(file.as_str()).unwrap();
+            let reader = BufReader::new(f);
 
-        // let words_iter = reader.lines().map_while(Result::ok).flat_map(|line| {
-        //     line.split_whitespace()
-        //         .map(String::from)
-        //         .collect::<Vec<_>>()
-        // });
+            // let words_iter = reader.lines().map_while(Result::ok).flat_map(|line| {
+            //     line.split_whitespace()
+            //         .map(String::from)
+            //         .collect::<Vec<_>>()
+            // });
 
-        let char_iter = reader
-            .lines()
-            .map_while(Result::ok)
-            .flat_map(|line| line.chars().collect::<Vec<_>>());
+            let char_iter = reader
+                .lines()
+                .map_while(Result::ok)
+                .flat_map(|line| line.chars().collect::<Vec<_>>());
 
-        // Split the file contents into words
-        let mut prev_n = VecDeque::new();
-        for current in char_iter {
-            // for current in words_iter {
-            // Add to the chain or insert a new entry if the key has no associated chain yet
-            if !prev_n.is_empty() {
-                markov
-                    .chain
-                    .entry(prev_n.clone().into())
-                    .or_insert_with(|| vec![current.clone()])
-                    .push(current.clone());
-            }
+            // Split the file contents into words
+            let mut prev_n = VecDeque::new();
+            for current in char_iter {
+                // for current in words_iter {
+                // Add to the chain or insert a new entry if the key has no associated chain yet
+                if !prev_n.is_empty() {
+                    markov
+                        .chain
+                        .entry(prev_n.clone().into())
+                        .or_insert_with(|| vec![current.clone()])
+                        .push(current.clone());
+                }
 
-            // Rotate the previous entries so that there is only ever N_gram amount of entries in the previous N
-            if prev_n.len() < markov.n_gram {
-                prev_n.push_back(current.clone());
-            } else {
-                prev_n.pop_front();
-                prev_n.push_back(current.clone());
+                // Rotate the previous entries so that there is only ever N_gram amount of entries in the previous N
+                if prev_n.len() < markov.n_gram {
+                    prev_n.push_back(current.clone());
+                } else {
+                    prev_n.pop_front();
+                    prev_n.push_back(current.clone());
+                }
             }
         }
 
