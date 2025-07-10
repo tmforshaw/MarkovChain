@@ -1,23 +1,19 @@
-use crate::{markov::Markov, tts::text_to_speech};
+use clap::Parser;
 
+use crate::{cli::Args, markov::Markov, tts::text_to_speech};
+
+mod cli;
 mod markov;
 mod tts;
 
 fn main() {
-    let args = std::env::args().collect::<Vec<String>>();
+    let args = Args::parse();
 
-    if args.len() > 3 {
-        let order = args[1].parse().unwrap();
-        let use_words = args[2].parse().unwrap();
+    let markov = Markov::new(args.order, args.words, args.files);
 
-        let files = args[3..args.len()].to_vec();
+    let text = markov.generate_text(args.length);
 
-        let markov = Markov::new(order, use_words, files);
+    println!("{text}");
 
-        let text = markov.generate_text(2000);
-
-        println!("{text}");
-
-        text_to_speech(text.clone());
-    }
+    text_to_speech(text.clone());
 }
