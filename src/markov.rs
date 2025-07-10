@@ -9,14 +9,16 @@ use std::{
 };
 
 pub struct Markov {
-    n_gram: usize,
-    chains: Vec<HashMap<Vec<char>, Vec<char>>>,
+    order: usize,
+    use_words: bool,
+    chains: Vec<HashMap<Vec<String>, Vec<String>>>,
 }
 
 impl Markov {
-    pub fn new(files: Vec<String>, n_gram: usize) -> Self {
+    pub fn new(order: usize, use_words: bool, files: Vec<String>) -> Self {
         let mut markov = Self {
-            n_gram,
+            order,
+            use_words,
             chains: Vec::new(),
         };
 
@@ -28,24 +30,31 @@ impl Markov {
             let f = File::open(file.as_str()).unwrap();
             let reader = BufReader::new(f);
 
-            let char_iter = reader
-                .lines()
-                .map_while(Result::ok)
-                .flat_map(|line| line.chars().collect::<Vec<_>>());
+            // Split the file contents into tokens
+            let token_iter = reader.lines().map_while(Result::ok).flat_map(|line| {
+                // Choose between using words or chars
+                if markov.use_words {
+                    line.split_whitespace()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                } else {
+                    line.chars().map(|c| c.to_string()).collect::<Vec<_>>()
+                }
+            });
 
-            // Split the file contents into words
+            // Build a chain from the tokens, keeping track of the N previous
             let mut prev_n = VecDeque::new();
-            for token in char_iter {
+            for token in token_iter {
                 // Add to the chain or insert a new entry if the key has no associated chain yet
                 if !prev_n.is_empty() {
                     chain
                         .entry(prev_n.clone().into())
-                        .or_insert_with(|| vec![token])
-                        .push(token);
+                        .or_insert_with(|| vec![token.clone()])
+                        .push(token.clone());
                 }
 
                 // Rotate the previous entries so that there is only ever N_gram amount of entries in the previous N
-                if prev_n.len() < markov.n_gram {
+                if prev_n.len() < markov.order {
                     prev_n.push_back(token);
                 } else {
                     prev_n.pop_front();
@@ -61,16 +70,18 @@ impl Markov {
     }
 
     pub fn generate_text(&self, length: usize) -> String {
-        // Generate words from a random chain
         let mut rng = rng();
+
+        // Generate starting words from a random chain
         let mut chain = self.chains.choose(&mut rng).unwrap();
         let keys = chain.keys().cloned().collect::<Vec<_>>();
         let mut key: VecDeque<_> = keys.choose(&mut rng).unwrap().clone().into();
 
+        // Initialise the output vector (Vec of tokens)
         let mut output: Vec<_> = key.clone().into();
 
-        // let mut chain = HashMap::new();
-        for _ in 0..(length - self.n_gram) {
+        // Give a maximum length, otherwise the text could generate infinitely
+        for _ in 0..(length - self.order) {
             // Shuffle the indices of the chains, so that, when checking if there is a continuation, we don't check each chain more than once
             let mut shuffled_indices = (0..self.chains.len()).collect::<Vec<_>>();
             shuffled_indices.shuffle(&mut rng);
@@ -98,14 +109,18 @@ impl Markov {
             };
 
             // Add the next word to the output
-            output.push(*next);
+            output.push(next.clone());
 
             // Rotate the previous N Vec
             key.pop_front();
-            key.push_back(*next);
+            key.push_back(next.clone());
         }
 
         // Join the output into a String
-        output.into_iter().collect()
+        if self.use_words {
+            output.join(" ")
+        } else {
+            output.join("")
+        }
     }
 }
