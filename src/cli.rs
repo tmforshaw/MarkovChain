@@ -19,6 +19,14 @@ pub struct Args {
     #[arg(short, long, default_value_t = 1.0)]
     pub temperature: f64,
 
+    /// Choose to keep punctuation or not
+    #[arg(short, long)]
+    pub punctuation: bool,
+
+    /// Choose to use TTS or not
+    #[arg(long)]
+    pub tts: bool,
+
     /// Files to use as data for the Markov chains
     #[arg()]
     pub files: Vec<String>,

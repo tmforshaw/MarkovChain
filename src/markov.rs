@@ -8,14 +8,16 @@ use std::{
 pub struct Markov {
     order: usize,
     use_words: bool,
+    keep_punctuation: bool,
     chain: HashMap<Vec<String>, HashMap<String, usize>>,
 }
 
 impl Markov {
-    pub fn new(order: usize, use_words: bool, files: Vec<String>) -> Self {
+    pub fn new(order: usize, use_words: bool, keep_punctuation: bool, files: Vec<String>) -> Self {
         let mut markov = Self {
             order,
             use_words,
+            keep_punctuation,
             chain: HashMap::new(),
         };
 
@@ -26,6 +28,13 @@ impl Markov {
 
             // Split the file contents into tokens
             let token_iter = reader.lines().map_while(Result::ok).flat_map(|line| {
+                // Clean the line up
+                let line = line
+                    .to_lowercase()
+                    .chars()
+                    .filter(|c| c.is_alphanumeric() || c.is_whitespace() || (markov.keep_punctuation && ",.!?;:".contains(*c)))
+                    .collect::<String>();
+
                 // Choose between using words or chars
                 if markov.use_words {
                     line.split_whitespace().map(ToString::to_string).collect::<Vec<_>>()
