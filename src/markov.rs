@@ -31,8 +31,19 @@ impl Markov {
                 // Clean the line up
                 let line = line
                     .to_lowercase()
+                    .split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join(" ")
                     .chars()
-                    .filter(|c| c.is_alphanumeric() || c.is_whitespace() || (markov.keep_punctuation && ",.!?;:".contains(*c)))
+                    .filter_map(|c| {
+                        if c.is_alphanumeric() || c.is_whitespace() || (markov.keep_punctuation && ",.!?;:".contains(c)) {
+                            Some(c)
+                        } else if markov.use_words {
+                            Some(' ')
+                        } else {
+                            None
+                        }
+                    })
                     .collect::<String>();
 
                 // Choose between using words or chars
