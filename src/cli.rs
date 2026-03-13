@@ -15,6 +15,10 @@ pub struct Args {
     #[arg(short, long, default_value_t = 500)]
     pub length: usize,
 
+    /// The temperature of the generation
+    #[arg(short, long, default_value_t = 1.0)]
+    pub temperature: f64,
+
     /// Files to use as data for the Markov chains
     #[arg()]
     pub files: Vec<String>,
